@@ -1,81 +1,108 @@
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-public class BookMyStayApp {
+// Room domain model
+class Room {
+    private String type;
+    private double price;
+    private List<String> amenities;
 
-    // Inner class for Room Inventory (Version 3.1 logic)
-    static class RoomInventory {
+    public Room(String type, double price, List<String> amenities) {
+        this.type = type;
+        this.price = price;
+        this.amenities = amenities;
+    }
 
-        private Map<String, Integer> inventory;
+    public String getType() {
+        return type;
+    }
 
-        // Constructor
-        public RoomInventory() {
-            inventory = new HashMap<>();
-        }
+    public double getPrice() {
+        return price;
+    }
 
-        // Add room type
-        public void addRoomType(String roomType, int count) {
-            inventory.put(roomType, count);
-        }
+    public List<String> getAmenities() {
+        return amenities;
+    }
+}
 
-        // Get availability
-        public int getAvailability(String roomType) {
-            return inventory.getOrDefault(roomType, 0);
-        }
+// Inventory (State Holder)
+class Inventory {
+    private Map<String, Integer> availability = new HashMap<>();
 
-        // Update availability
-        public void updateAvailability(String roomType, int change) {
-            int current = inventory.getOrDefault(roomType, 0);
-            int updated = current + change;
+    public void addRoom(String type, int count) {
+        availability.put(type, count);
+    }
 
-            if (updated < 0) {
-                System.out.println("❌ Not enough rooms available for: " + roomType);
-            } else {
-                inventory.put(roomType, updated);
-                System.out.println("✅ Updated " + roomType + " to " + updated);
-            }
-        }
+    // Read-only access
+    public int getAvailability(String type) {
+        return availability.getOrDefault(type, 0);
+    }
 
-        // Display inventory
-        public void displayInventory() {
-            System.out.println("\n📊 Current Room Inventory:");
-            for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
-                System.out.println(entry.getKey() + " : " + entry.getValue());
+    public Set<String> getAllRoomTypes() {
+        return availability.keySet();
+    }
+}
+
+// Search Service (Read-only logic)
+class SearchService {
+    private Inventory inventory;
+    private Map<String, Room> roomDetails;
+
+    public SearchService(Inventory inventory, Map<String, Room> roomDetails) {
+        this.inventory = inventory;
+        this.roomDetails = roomDetails;
+    }
+
+    public void searchAvailableRooms() {
+        System.out.println("\nAvailable Rooms:\n");
+
+        for (String type : inventory.getAllRoomTypes()) {
+
+            int availableCount = inventory.getAvailability(type);
+
+            // Validation: filter unavailable rooms
+            if (availableCount > 0) {
+                Room room = roomDetails.get(type);
+
+                // Defensive check
+                if (room != null) {
+                    System.out.println("Room Type: " + room.getType());
+                    System.out.println("Price: ₹" + room.getPrice());
+                    System.out.println("Amenities: " + room.getAmenities());
+                    System.out.println("Available: " + availableCount);
+                    System.out.println("---------------------------");
+                }
             }
         }
     }
+}
 
-    // Main method
+// Main class
+public class BookMyStayApp {
     public static void main(String[] args) {
 
-        RoomInventory inventory = new RoomInventory();
+        // Create Inventory
+        Inventory inventory = new Inventory();
+        inventory.addRoom("Single", 3);
+        inventory.addRoom("Double", 0);
+        inventory.addRoom("Suite", 2);
 
-        // Initialize rooms
-        inventory.addRoomType("Standard", 10);
-        inventory.addRoomType("Deluxe", 5);
-        inventory.addRoomType("Suite", 2);
+        // Create Room Details (Domain Model)
+        Map<String, Room> roomDetails = new HashMap<>();
 
-        // Display initial
-        inventory.displayInventory();
+        roomDetails.put("Single",
+                new Room("Single", 2000, Arrays.asList("WiFi", "TV")));
 
-        // Check availability
-        System.out.println("\n🔍 Availability:");
-        System.out.println("Standard: " + inventory.getAvailability("Standard"));
-        System.out.println("Suite: " + inventory.getAvailability("Suite"));
+        roomDetails.put("Double",
+                new Room("Double", 3500, Arrays.asList("WiFi", "TV", "AC")));
 
-        // Booking
-        System.out.println("\n🛎 Booking:");
-        inventory.updateAvailability("Standard", -2);
-        inventory.updateAvailability("Suite", -1);
+        roomDetails.put("Suite",
+                new Room("Suite", 6000, Arrays.asList("WiFi", "TV", "AC", "Mini Bar")));
 
-        // Invalid booking
-        inventory.updateAvailability("Suite", -5);
+        // Search Service
+        SearchService searchService = new SearchService(inventory, roomDetails);
 
-        // Cancellation
-        System.out.println("\n↩️ Cancellation:");
-        inventory.updateAvailability("Standard", +1);
-
-        // Final state
-        inventory.displayInventory();
+        // Guest initiates search
+        searchService.searchAvailableRooms();
     }
 }
